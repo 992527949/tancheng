@@ -20,6 +20,8 @@ class HmDianPingApplicationTests {
 //    void testSaveShop() throws InterruptedException {
 //        shopService.saveShop2Redis(1L, 10L);
 //    }
+
+
     @Resource
     private RedisIdWorker redisIdWorker;
 
