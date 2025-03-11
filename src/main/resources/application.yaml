@@ -1,5 +1,5 @@
 server:
-  port: 8082
+  port: 8081
 spring:
   application:
     name: hmdp
@@ -12,7 +12,7 @@ spring:
     host: 127.0.0.1
     port: 6379
     password:
-    database: 2
+    database: 0
     lettuce:
       pool:
         max-active: 10
