@@ -93,7 +93,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                     Map<Object, Object> value = record.getValue();
                     // 获取订单信息
                     VoucherOrder voucherOrder = BeanUtil.fillBeanWithMap(value, new VoucherOrder(), true);
-                    
                     handleVoucherOrder(voucherOrder);
                     // ACK确认
                     stringRedisTemplate.opsForStream().acknowledge(queueName, "g1", record.getId());
