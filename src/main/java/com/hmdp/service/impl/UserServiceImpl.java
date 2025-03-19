@@ -12,9 +12,11 @@ import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RegexUtils;
+import com.hmdp.utils.UserHolder;
 import lombok.var;
 import org.omg.PortableInterceptor.USER_EXCEPTION;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.connection.ClusterInfo;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -22,7 +24,10 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -91,6 +96,57 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         stringRedisTemplate.opsForHash().putAll(tokenKey, userMap);
         stringRedisTemplate.expire(tokenKey, LOGIN_USER_TTL, TimeUnit.MINUTES);
         return Result.ok(token);
+    }
+
+    @Override
+    public Result sign() {
+        //获取当前登录用户id
+        Long userId = UserHolder.getUser().getId();
+        //获取日期
+        LocalDateTime now = LocalDateTime.now();
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        //拼接key
+        String key = USER_SIGN_KEY + userId + keySuffix;
+        //获取今天是第几天,offset
+        int offset = now.getDayOfMonth() -1;
+        //写入redis， setbit key offset value
+        stringRedisTemplate.opsForValue().setBit(key, offset, true);
+        return Result.ok();
+    }
+
+    @Override
+    public Result signCount() {
+        // 获取签到记录
+        //获取当前登录用户id
+        Long userId = UserHolder.getUser().getId();
+        //获取日期
+        LocalDateTime now = LocalDateTime.now();
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        //拼接key
+        String key = USER_SIGN_KEY + userId + keySuffix;
+        //获取今天是第几天,offset
+        int dayOfMonth = now.getDayOfMonth();
+        //获取签到记录 BITFIELD key GET u（dayofmonth） 0
+        List<Long> longs = stringRedisTemplate.opsForValue().bitField(key,
+                BitFieldSubCommands.create().get(BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth)).valueAt(0));
+        //得到的值循环遍历，获取连续签到天数，右移与1做与运算
+        if (longs == null || longs.isEmpty()) {
+            return Result.ok(0);
+        }
+        Long num = longs.get(0);
+        if (num == null || num == 0) {
+            return Result.ok(0);
+        }
+        int count = 0;
+        while (true){
+            if ((num & 1) ==0) {
+                break;
+            }else{
+                count++;
+            }
+            num >>>= 1;
+        }
+        return Result.ok(count);
     }
 
     private User createUserWithPhone(String phone) {

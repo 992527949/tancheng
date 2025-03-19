@@ -248,7 +248,9 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         if (list.size() <= from){
             return Result.ok(Collections.emptyList());
         }
+
         List<Long> ids = new ArrayList<>(list.size());
+        System.out.println(ids);
         Map<String, Distance> distanceMap = new HashMap<>(list.size());
         list.stream().skip(from).forEach(result -> {
             // 获取id
